@@ -1,0 +1,829 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Тренажер слайдів</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Макет: зліва вікно-імітація програми для презентацій, справа черга завдань; на вузьких екранах завдання йдуть угорі. */
+:root{
+  --font-ui:'Onest',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-display:'Unbounded','Onest',system-ui,sans-serif;
+  --font-key:'JetBrains Mono',ui-monospace,Consolas,monospace;
+  --bg:#EDF1EF; --surface:#FFFFFF; --chrome:#E1E8E5; --chrome-2:#D3DCD8; --stage:#C8D2CE; --line:#BCC8C3;
+  --fg:#16211D; --muted:#53635D; --accent:#0B7A66; --accent-ink:#FFFFFF; --accent-soft:#D5EEE7;
+  --ok:#17744A; --bad:#B3361F; --ok-soft:#DDF1E6; --bad-soft:#F7E1DC;
+  --paper:#FFFFFF; --paper-ink:#1A2823; --paper-line:#9FB0AA; --paper-sub:#3E524B; --paper-hint:#6E807A; --slide-accent:#0B7A66;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1513; --surface:#17211E; --chrome:#1F2B27; --chrome-2:#2A3833; --stage:#0F1816; --line:#364540;
+    --fg:#E5EEEA; --muted:#9BAEA6; --accent:#46C8AA; --accent-ink:#04201A; --accent-soft:#163A31;
+    --ok:#5BD08D; --bad:#FF8F78; --ok-soft:#153324; --bad-soft:#40201A;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1513; --surface:#17211E; --chrome:#1F2B27; --chrome-2:#2A3833; --stage:#0F1816; --line:#364540;
+  --fg:#E5EEEA; --muted:#9BAEA6; --accent:#46C8AA; --accent-ink:#04201A; --accent-soft:#163A31;
+  --ok:#5BD08D; --bad:#FF8F78; --ok-soft:#153324; --bad-soft:#40201A;
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;background:var(--bg);color:var(--fg);
+  font-family:var(--font-ui);font-size:15px;line-height:1.5;
+  padding-block:24px 56px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+kbd{font-family:var(--font-key);font-size:.82em;padding:1px 6px;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;background:var(--surface);white-space:nowrap}
+.page{max-width:1240px;margin:0 auto}
+
+/* Заголовок сторінки */
+.head{margin-bottom:20px;max-width:780px}
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:0 0 8px}
+h1{font-family:var(--font-display);font-weight:600;font-size:clamp(22px,3.4vw,34px);line-height:1.2;margin:0 0 10px;text-wrap:balance}
+.lead{margin:0;color:var(--muted);max-width:62ch}
+
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 350px;gap:20px;align-items:start}
+@media (max-width:980px){
+  .layout{grid-template-columns:minmax(0,1fr)}
+  .missions{order:-1}
+}
+
+/* Вікно програми */
+.app{background:var(--chrome);border:1px solid var(--line);border-radius:10px;overflow:hidden;min-width:0;display:flex;flex-direction:column}
+.titlebar{display:flex;align-items:center;gap:10px;padding:7px 12px;font-size:12.5px;color:var(--muted);background:var(--chrome-2);border-bottom:1px solid var(--line)}
+.dots{display:flex;gap:5px}
+.dots i{width:9px;height:9px;border-radius:50%;background:var(--line)}
+.titlebar span.t{flex:1;text-align:center;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.titlebar .sp{width:37px}
+.tabs{display:flex;gap:2px;padding:6px 10px 0;overflow-x:auto;background:var(--chrome)}
+.tab{border:1px solid transparent;border-bottom:0;background:none;padding:6px 14px;border-radius:7px 7px 0 0;cursor:pointer;font-size:13.5px;white-space:nowrap;color:var(--muted)}
+.tab:hover{color:var(--fg)}
+.tab[aria-selected="true"]{background:var(--surface);color:var(--fg);border-color:var(--line);font-weight:600;position:relative;top:1px}
+.ribbon{display:flex;background:var(--surface);border-top:1px solid var(--line);border-bottom:1px solid var(--line);min-height:92px;overflow-x:auto}
+.grp{display:flex;flex-direction:column;padding:6px 12px 4px;border-right:1px solid var(--line);flex:none}
+.grp-body{flex:1;display:flex;gap:4px;align-items:flex-start}
+.grp-name{font-size:11px;color:var(--muted);text-align:center;margin-top:3px}
+.rb{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:3px;padding:5px 8px;border-radius:6px;border:1px solid transparent;background:none;cursor:pointer;font-size:12px;line-height:1.2;min-width:68px;text-align:center}
+.rb:hover{background:var(--chrome)}
+.rb[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent)}
+.rb .ic{width:26px;height:26px}
+.split{display:flex;flex-direction:column;align-items:center}
+.split .rb:first-child{padding-bottom:1px}
+.split .rb.cap{padding-top:1px;min-width:80px}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+.work{height:440px;position:relative;background:var(--stage)}
+.view{display:none;height:100%;min-height:0}
+.app[data-view="normal"] #v-normal{display:flex}
+.app[data-view="sorter"] #v-sorter{display:flex;flex-direction:column}
+.app[data-view="notes"] #v-notes{display:flex;flex-direction:column}
+.app[data-view="reading"] #v-reading{display:flex;flex-direction:column}
+
+/* Слайд */
+.slide{container-type:inline-size;position:relative;aspect-ratio:16/9;width:100%;background:var(--paper);color:var(--paper-ink);overflow:hidden;font-family:var(--font-ui)}
+.slide .band{position:absolute;left:0;top:0;right:0;height:2.2cqw;background:var(--slide-accent)}
+.ph{position:absolute;overflow:hidden;white-space:pre-wrap;overflow-wrap:anywhere;outline:none;padding:.6cqw 1.2cqw;border:.2cqw dashed var(--paper-line);line-height:1.25;font-size:3.2cqw;margin:0}
+.ph:not(.empty){border-color:transparent}
+.slide.edit .ph:not(.empty):hover{border-color:var(--paper-line)}
+.slide.edit .ph:focus{border-color:var(--slide-accent);border-style:solid}
+.slide.edit .ph.empty::before{content:attr(data-prompt);color:var(--paper-hint);pointer-events:none}
+.slide.clean .ph.empty{visibility:hidden}
+.ph-t{font-weight:700;font-size:4.8cqw;line-height:1.15}
+.lay-title .ph-t{left:8%;top:27%;width:84%;height:25%;font-size:7cqw;text-align:center}
+.lay-title .ph-s{left:12%;top:56%;width:76%;height:14%;font-size:3.6cqw;text-align:center;color:var(--paper-sub)}
+.lay-titleContent .ph-t,.lay-twoContent .ph-t,.lay-titleOnly .ph-t{left:5%;top:7%;width:90%;height:16%}
+.lay-titleContent .ph-b1{left:5%;top:27%;width:90%;height:62%}
+.lay-twoContent .ph-b1{left:5%;top:27%;width:43.5%;height:62%}
+.lay-twoContent .ph-b2{left:51.5%;top:27%;width:43.5%;height:62%}
+
+/* Звичайний режим */
+.thumbs{width:164px;flex:none;overflow-y:auto;background:var(--chrome-2);padding:8px 6px;display:flex;flex-direction:column;gap:6px;border-right:1px solid var(--line)}
+.thumb{display:flex;gap:6px;align-items:flex-start;position:relative;padding:4px;border-radius:6px;cursor:pointer}
+.thumb:hover{background:var(--chrome)}
+.thumb .n{font-size:11px;color:var(--muted);width:14px;text-align:right;padding-top:2px;font-variant-numeric:tabular-nums;flex:none}
+.thumb .mini{flex:1;min-width:0}
+.thumb .mini .slide{border:1px solid var(--paper-line)}
+.thumb.sel{background:var(--accent-soft)}
+.thumb.sel .mini .slide{outline:2px solid var(--accent)}
+.more{position:absolute;right:8px;bottom:8px;width:24px;height:22px;border-radius:5px;border:1px solid var(--line);background:var(--surface);cursor:pointer;line-height:1;font-size:14px;padding:0}
+.stage{flex:1;min-width:0;display:grid;place-items:center;padding:16px;overflow:auto}
+.stage .slide{width:min(100%,640px);box-shadow:0 2px 14px rgba(0,0,0,.28)}
+@media (max-width:640px){
+  #v-normal{flex-direction:column}
+  .thumbs{width:auto;flex-direction:row;overflow-x:auto;overflow-y:hidden;border-right:0;border-bottom:1px solid var(--line);padding:6px}
+  .thumb{flex:none;width:132px}
+  .stage{padding:10px}
+}
+
+/* Сортувальник */
+.sgrid{flex:1;overflow:auto;padding:16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:16px;align-content:start}
+.sitem{display:flex;flex-direction:column;gap:5px;align-items:stretch;cursor:grab;padding:4px;border-radius:6px;min-width:0}
+.sitem .slide{border:1px solid var(--paper-line)}
+.sitem .num{font-size:12px;color:var(--fg);text-align:center;font-variant-numeric:tabular-nums}
+.sitem.sel{background:var(--accent-soft);outline:2px solid var(--accent)}
+.sitem.drag{opacity:.45}
+.sitem.over{box-shadow:-6px 0 0 var(--accent)}
+.sbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:8px 12px;background:var(--chrome);border-top:1px solid var(--line)}
+.sbar .hint{font-size:12px;color:var(--muted);margin-left:auto}
+
+/* Сторінка нотаток */
+.notes-wrap{flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;align-items:center;gap:10px}
+.pager{display:flex;align-items:center;gap:10px;font-size:13px;font-variant-numeric:tabular-nums}
+.paper{background:var(--paper);color:var(--paper-ink);width:min(100%,440px);padding:18px;display:flex;flex-direction:column;gap:12px;box-shadow:0 2px 14px rgba(0,0,0,.28);border-radius:2px}
+.paper .slide{border:1px solid var(--paper-line)}
+.paper label{font-size:12px;font-weight:600;color:var(--paper-sub)}
+.paper textarea{font:inherit;font-size:14px;color:var(--paper-ink);background:var(--paper);border:1px solid var(--paper-line);border-radius:4px;padding:8px 10px;min-height:96px;resize:vertical;width:100%}
+
+/* Режим читання */
+.read-main{flex:1;min-height:0;display:grid;place-items:center;padding:16px;cursor:pointer}
+.read-main .slide{width:min(100%,640px);box-shadow:0 2px 14px rgba(0,0,0,.28)}
+.read-bar{display:flex;justify-content:center;align-items:center;gap:12px;padding:8px;background:var(--chrome);border-top:1px solid var(--line);font-size:13px;font-variant-numeric:tabular-nums}
+
+/* Рядок стану */
+.status{display:flex;align-items:center;gap:12px;padding:4px 12px;background:var(--chrome);border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+.status .sp{flex:1}
+.vbtns{display:flex;gap:2px}
+.vb{width:30px;height:26px;display:grid;place-items:center;border-radius:5px;border:1px solid transparent;background:none;cursor:pointer;color:var(--fg)}
+.vb:hover{background:var(--chrome-2)}
+.vb[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent)}
+.touchkey{display:none}
+@media (pointer:coarse){.touchkey{display:inline-block}}
+
+.btn{font-size:13px;padding:6px 12px;border-radius:6px;border:1px solid var(--line);background:var(--surface);cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+.btn.sm{padding:3px 10px;font-size:12px}
+
+/* Спливні меню */
+.pop{position:fixed;z-index:50;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 28px rgba(0,0,0,.28);padding:6px}
+.pop.gal{width:min(92vw,430px);padding:10px}
+.gal .gt{font-size:12px;font-weight:600;color:var(--muted);margin:0 0 8px}
+.gal .gg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.gitem{border:1px solid transparent;background:none;border-radius:6px;padding:5px;cursor:pointer;display:flex;flex-direction:column;gap:4px;font-size:12px;text-align:center}
+.gitem:hover{border-color:var(--accent);background:var(--accent-soft)}
+.gitem .slide{border:1px solid var(--paper-line)}
+.pop.ctx{min-width:190px}
+.pop.ctx button{display:block;width:100%;text-align:left;background:none;border:0;padding:7px 12px;border-radius:5px;cursor:pointer;font-size:13.5px}
+.pop.ctx button:hover{background:var(--accent-soft)}
+
+/* Показ слайдів */
+#show{position:fixed;inset:0;z-index:100;background:#000;display:grid;place-items:center;outline:none;cursor:pointer}
+#show .slide{width:min(100vw,177.78vh)}
+#show .end{color:#B9C4C0;font-size:16px;padding:24px;text-align:center}
+#showClose{position:absolute;top:calc(10px + env(safe-area-inset-top,0px));right:calc(12px + env(safe-area-inset-right,0px));background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:6px 12px;cursor:pointer;font-size:13px}
+#showHelp{position:absolute;bottom:calc(14px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:rgba(255,255,255,.16);color:#fff;border-radius:999px;padding:6px 16px;font-size:13px;white-space:nowrap;animation:fade 5s forwards;pointer-events:none}
+@keyframes fade{0%,70%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion:reduce){#showHelp{animation:none;opacity:.9}}
+
+/* Панель завдань */
+.missions{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:14px;min-width:0}
+@media (min-width:981px){.missions{position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto}}
+.mhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.mhead h2{margin:0;font-size:14px;font-weight:700}
+.mhead .cnt{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.pips{display:grid;grid-template-columns:repeat(11,1fr);gap:3px}
+.pips i{height:5px;border-radius:3px;background:var(--chrome-2)}
+.pips i.done{background:var(--accent)}
+.pips i.cur{background:var(--surface);box-shadow:inset 0 0 0 1.5px var(--accent)}
+.card{border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;background:var(--bg)}
+.card .part{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);font-weight:700;margin:0}
+.card .task{margin:0;font-size:15px;line-height:1.5}
+.card.ok{border-color:var(--ok);background:var(--ok-soft)}
+.card.ok .part{color:var(--ok)}
+.card .why{margin:0;font-size:14px}
+.hintbox{font-size:13.5px;color:var(--fg);background:var(--surface);border:1px dashed var(--line);border-radius:6px;padding:8px 10px;margin:0}
+.crow{display:flex;gap:8px;flex-wrap:wrap}
+.live{font-size:13px;color:var(--muted);background:var(--bg);border-radius:6px;padding:8px 10px;margin:0;min-height:2.6em}
+.mlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;font-size:13px}
+.mlist li{display:flex;gap:8px;align-items:center;padding:2px 0;color:var(--muted)}
+.mlist li .b{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line);display:grid;place-items:center;font-size:11px;flex:none;font-variant-numeric:tabular-nums}
+.mlist li.done{color:var(--fg)}
+.mlist li.done .b{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.mlist li.cur{color:var(--fg);font-weight:600}
+.mlist li.cur .b{border-color:var(--accent);color:var(--accent)}
+.mfoot{display:flex;justify-content:flex-end}
+
+/* Перевірка */
+.quiz{margin-top:32px;max-width:780px}
+.quiz h2{font-family:var(--font-display);font-weight:600;font-size:clamp(18px,2.4vw,24px);margin:0 0 6px}
+.quiz .qlead{color:var(--muted);margin:0 0 16px}
+.q{border-top:1px solid var(--line);padding:14px 0;display:flex;flex-direction:column;gap:10px}
+.q p{margin:0}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opt{border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:7px 12px;cursor:pointer;font-size:14px}
+.opt:hover:not(:disabled){border-color:var(--accent)}
+.opt:disabled{cursor:default;opacity:.7}
+.opt.good{border-color:var(--ok);background:var(--ok-soft);opacity:1;font-weight:600}
+.opt.bad{border-color:var(--bad);background:var(--bad-soft);opacity:1}
+.qf{font-size:14px;min-height:1.5em}
+.qf.good{color:var(--ok)}
+.qf.bad{color:var(--bad)}
+.qres{border-top:1px solid var(--line);padding-top:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-weight:600}
+</style>
+
+<div class="page">
+  <header class="head">
+    <p class="eyebrow">Практична вправа · Інформатика</p>
+    <h1>Слайди та режими перегляду</h1>
+    <p class="lead">Додайте слайди до презентації різними способами й перемикайте режими перегляду. Усі дії виконуйте у вікні програми; завдання відкриваються по черзі.</p>
+  </header>
+
+  <div class="layout">
+    <section class="app" id="app" data-view="normal" aria-label="Імітація програми для презентацій">
+      <div class="titlebar"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="t">Біоінженерія навколо нас — Презентація</span><span class="sp"></span></div>
+      <div class="tabs" role="tablist" aria-label="Вкладки стрічки">
+        <button class="tab" role="tab" data-tab="home">Основне</button>
+        <button class="tab" role="tab" data-tab="insert">Вставлення</button>
+        <button class="tab" role="tab" data-tab="slideshow">Показ слайдів</button>
+        <button class="tab" role="tab" data-tab="view">Вигляд</button>
+      </div>
+
+      <div class="ribbon" data-tab="home">
+        <div class="grp"><div class="grp-body">
+          <div class="split">
+            <button class="rb" data-act="quick" title="Створити слайд"><svg class="ic" viewBox="0 0 24 24" data-icon="newslide" aria-hidden="true" style="width:26px;height:26px"></svg><span class="sr" hidden>Створити слайд</span></button>
+            <button class="rb cap" data-act="gal" data-opens="gallery" aria-haspopup="true">Створити слайд ▾</button>
+          </div>
+          <button class="rb" data-act="layoutgal" data-opens="gallery" aria-haspopup="true"><svg class="ic" viewBox="0 0 24 24" data-icon="layout" aria-hidden="true"></svg>Макет ▾</button>
+        </div><div class="grp-name">Слайди</div></div>
+      </div>
+      <div class="ribbon" data-tab="insert">
+        <div class="grp"><div class="grp-body">
+          <div class="split">
+            <button class="rb" data-act="quick" title="Створити слайд"><svg class="ic" viewBox="0 0 24 24" data-icon="newslide" aria-hidden="true" style="width:26px;height:26px"></svg></button>
+            <button class="rb cap" data-act="gal" data-opens="gallery" aria-haspopup="true">Створити слайд ▾</button>
+          </div>
+        </div><div class="grp-name">Слайди</div></div>
+      </div>
+      <div class="ribbon" data-tab="slideshow">
+        <div class="grp"><div class="grp-body">
+          <button class="rb" data-act="show:start"><svg class="ic" viewBox="0 0 24 24" data-icon="fromstart" aria-hidden="true"></svg>З початку</button>
+          <button class="rb" data-act="show:cur"><svg class="ic" viewBox="0 0 24 24" data-icon="fromcur" aria-hidden="true"></svg>З поточного слайда</button>
+        </div><div class="grp-name">Розпочати показ слайдів</div></div>
+      </div>
+      <div class="ribbon" data-tab="view">
+        <div class="grp"><div class="grp-body">
+          <button class="rb" data-act="view:normal"><svg class="ic" viewBox="0 0 24 24" data-icon="normal" aria-hidden="true"></svg>Звичайний</button>
+          <button class="rb" data-act="view:sorter"><svg class="ic" viewBox="0 0 24 24" data-icon="sorter" aria-hidden="true"></svg>Сортувальник слайдів</button>
+          <button class="rb" data-act="view:notes"><svg class="ic" viewBox="0 0 24 24" data-icon="notes" aria-hidden="true"></svg>Сторінка нотаток</button>
+          <button class="rb" data-act="view:reading"><svg class="ic" viewBox="0 0 24 24" data-icon="reading" aria-hidden="true"></svg>Режим читання</button>
+        </div><div class="grp-name">Режими подання презентації</div></div>
+      </div>
+
+      <div class="work">
+        <div class="view" id="v-normal">
+          <div class="thumbs" id="thumbs" role="listbox" aria-label="Мініатюри слайдів"></div>
+          <div class="stage" id="stage"></div>
+        </div>
+        <div class="view" id="v-sorter">
+          <div class="sgrid" id="sgrid" aria-label="Усі слайди"></div>
+          <div class="sbar">
+            <button class="btn sm" id="sEarlier">◀ Раніше</button>
+            <button class="btn sm" id="sLater">Пізніше ▶</button>
+            <button class="btn sm" id="sDelete">Видалити слайд</button>
+            <span class="hint">Перетягніть мініатюру на нове місце</span>
+          </div>
+        </div>
+        <div class="view" id="v-notes">
+          <div class="notes-wrap">
+            <div class="pager"><button class="btn sm" id="nPrev" aria-label="Попередній слайд">◀</button><span id="nLbl"></span><button class="btn sm" id="nNext" aria-label="Наступний слайд">▶</button></div>
+            <div class="paper">
+              <div id="nSlide"></div>
+              <label for="nText">Нотатки до слайда</label>
+              <textarea id="nText" placeholder="Клацніть, щоб додати нотатки"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="view" id="v-reading">
+          <div class="read-main" id="rMain" title="Клацніть, щоб перейти до наступного слайда"></div>
+          <div class="read-bar"><button class="btn sm" id="rPrev" aria-label="Попередній слайд">◀</button><span id="rLbl"></span><button class="btn sm" id="rNext" aria-label="Наступний слайд">▶</button></div>
+        </div>
+      </div>
+
+      <div class="status">
+        <span id="stLbl"></span>
+        <span>Українська</span>
+        <button class="btn sm touchkey" id="tkey" title="Імітація натискання Ctrl + M">Ctrl + M</button>
+        <span class="sp"></span>
+        <div class="vbtns" role="group" aria-label="Режими перегляду">
+          <button class="vb" data-act="view:normal" data-vb="normal" title="Звичайний" aria-label="Звичайний"><svg class="ic" viewBox="0 0 24 24" data-icon="normal" aria-hidden="true"></svg></button>
+          <button class="vb" data-act="view:sorter" data-vb="sorter" title="Сортувальник слайдів" aria-label="Сортувальник слайдів"><svg class="ic" viewBox="0 0 24 24" data-icon="sorter" aria-hidden="true"></svg></button>
+          <button class="vb" data-act="view:reading" data-vb="reading" title="Режим читання" aria-label="Режим читання"><svg class="ic" viewBox="0 0 24 24" data-icon="reading" aria-hidden="true"></svg></button>
+          <button class="vb" data-act="show:cur" title="Показ слайдів" aria-label="Показ слайдів"><svg class="ic" viewBox="0 0 24 24" data-icon="show" aria-hidden="true"></svg></button>
+        </div>
+      </div>
+    </section>
+
+    <aside class="missions" aria-label="Завдання">
+      <div class="mhead"><h2>Завдання</h2><span class="cnt" id="count"></span></div>
+      <div class="pips" id="pips" aria-hidden="true"></div>
+      <div id="card"></div>
+      <p class="live" id="live" aria-live="polite">Тут з’являтиметься результат ваших дій.</p>
+      <ol class="mlist" id="mlist"></ol>
+      <div class="mfoot"><button class="btn sm" id="reset">Почати спочатку</button></div>
+    </aside>
+  </div>
+
+  <section class="quiz" id="quiz">
+    <h2>Перевірка: який режим обрати?</h2>
+    <p class="qlead">Для кожної ситуації оберіть режим, який підходить найкраще.</p>
+    <div id="qs"></div>
+    <div id="qres"></div>
+  </section>
+</div>
+
+<div class="pop gal" id="gallery" hidden role="menu"><p class="gt" id="galTitle">Створити слайд</p><div class="gg" id="galGrid"></div></div>
+<div class="pop ctx" id="ctx" hidden role="menu">
+  <button data-c="new" role="menuitem">Створити слайд</button>
+  <button data-c="dup" role="menuitem">Дублювати слайд</button>
+  <button data-c="del" role="menuitem">Видалити слайд</button>
+</div>
+<div id="show" hidden tabindex="-1" role="dialog" aria-label="Показ слайдів"><div id="showStage"></div><button id="showClose">Вийти (Esc)</button><div id="showHelp">Клацніть або натисніть стрілку, щоб перейти далі. Esc — вихід.</div></div>
+
+<script>
+(function(){
+'use strict';
+var $=function(s,r){return (r||document).querySelector(s)};
+var $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
+var esc=function(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})};
+var CE=(function(){var d=document.createElement('div');try{d.contentEditable='plaintext-only'}catch(e){}return d.contentEditable==='plaintext-only'?'plaintext-only':'true'})();
+
+var ICONS={
+  newslide:'<rect x="3" y="4" width="15" height="11" rx="1.5"/><path d="M19 13v7M15.5 16.5h7"/>',
+  layout:'<rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M3 9h18M10 9v11"/>',
+  normal:'<rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M9 4v16"/><rect x="12" y="8" width="6" height="5" rx=".5"/>',
+  sorter:'<rect x="3" y="4" width="7" height="6" rx="1"/><rect x="14" y="4" width="7" height="6" rx="1"/><rect x="3" y="14" width="7" height="6" rx="1"/><rect x="14" y="14" width="7" height="6" rx="1"/>',
+  notes:'<rect x="5" y="3" width="14" height="18" rx="1.5"/><rect x="8" y="6" width="8" height="5" rx=".5"/><path d="M8 15h8M8 18h5"/>',
+  reading:'<path d="M12 6c-2-1.5-5-2-8-2v13c3 0 6 .5 8 2 2-1.5 5-2 8-2V4c-3 0-6 .5-8 2zM12 6v13"/>',
+  show:'<rect x="3" y="4" width="18" height="13" rx="1.5"/><path d="M10 8v5l4.5-2.5z"/><path d="M8 21h8"/>',
+  fromstart:'<path d="M6 5v14M10 6l9 6-9 6z"/>',
+  fromcur:'<path d="M6 6l12 6-12 6z"/>'
+};
+$$('[data-icon]').forEach(function(el){el.innerHTML=ICONS[el.getAttribute('data-icon')]});
+
+var LAYOUTS={
+  title:{name:'Титульний слайд',ph:['t','s']},
+  titleContent:{name:'Заголовок і вміст',ph:['t','b1']},
+  twoContent:{name:'Два об’єкти',ph:['t','b1','b2']},
+  titleOnly:{name:'Лише заголовок',ph:['t']},
+  blank:{name:'Порожній слайд',ph:[]}
+};
+var PROMPTS={t:'Клацніть, щоб додати заголовок',s:'Клацніть, щоб додати підзаголовок',b1:'Клацніть, щоб додати текст',b2:'Клацніть, щоб додати текст'};
+var MODES=[['normal','Звичайний'],['sorter','Сортувальник слайдів'],['notes','Сторінка нотаток'],['reading','Режим читання'],['show','Показ слайдів']];
+var VIEWNAMES={normal:'Звичайний',sorter:'Сортувальник слайдів',notes:'Сторінка нотаток',reading:'Режим читання'};
+
+/* ---------- Завдання ---------- */
+var M=[
+ {s:'Макет у галереї',part:1,
+  t:'Додайте слайд з макетом «Два об’єкти»: на вкладці «Основне» натисніть «Створити слайд ▾» і виберіть макет у галереї.',
+  hint:'Вкладка «Основне» вже відкрита. У групі «Слайди» натисніть нижню частину кнопки, де є стрілка ▾. З’явиться галерея макетів.',
+  why:'Макет визначає, які рамки (заповнювачі) будуть на слайді. «Два об’єкти» має заголовок і дві колонки для тексту чи зображень. Новий слайд з’являється після виділеного.',
+  test:function(e){return e.type==='add'&&e.via==='gallery'&&e.layout==='twoContent'}},
+ {s:'Контекстне меню',part:1,
+  t:'Додайте ще один слайд через контекстне меню: клацніть правою кнопкою миші в панелі мініатюр ліворуч і виберіть «Створити слайд».',
+  hint:'На телефоні чи планшеті немає правої кнопки: натисніть кнопку ⋯ на виділеній мініатюрі.',
+  why:'Контекстне меню з’являється там, де ви клацнули, і містить дії для слайдів. Такий слайд має той самий макет, що й виділений.',
+  test:function(e){return e.type==='add'&&e.via==='context'}},
+ {s:'Гарячі клавіші',part:1,
+  t:'Додайте слайд клавішами <kbd>Ctrl</kbd> + <kbd>M</kbd>.',
+  hint:'Спершу клацніть будь-де у вікні програми, щоб воно приймало клавіші. Потім утримуйте Ctrl і натисніть M. Розкладка клавіатури не має значення. На телефоні скористайтеся кнопкою «Ctrl + M» у рядку стану.',
+  why:'Гарячі клавіші швидші за меню: слайд додається, не відриваючи рук від клавіатури.',
+  test:function(e){return e.type==='add'&&e.via==='key'}},
+ {s:'Дублювання',part:1,
+  t:'Створіть копію слайда: виділіть слайд, клацніть правою кнопкою на мініатюрі й виберіть «Дублювати слайд».',
+  hint:'Кнопка ⋯ на виділеній мініатюрі відкриває те саме меню.',
+  why:'Дублювати зручно, коли потрібен слайд із таким самим оформленням. Копія вставляється одразу після оригіналу.',
+  test:function(e){return e.type==='dup'}},
+ {s:'Заголовок слайда',part:1,
+  t:'Клацніть у рамці заголовка одного з нових слайдів на великому полотні й введіть будь-який заголовок.',
+  hint:'Рамка з підказкою «Клацніть, щоб додати заголовок» розташована вгорі слайда. Виберіть у панелі ліворуч слайд, який ви додали.',
+  why:'Слайд без тексту — лише заготовка. Заголовок з’являється й на мініатюрі, тому слайди легше розрізняти.',
+  test:function(e){return e.type==='type'}},
+ {s:'Сортувальник',part:2,
+  t:'Перемкніться в режим «Сортувальник слайдів»: на вкладці «Вигляд» або кнопкою в рядку стану внизу вікна.',
+  hint:'Відкрийте вкладку «Вигляд» і знайдіть групу «Режими подання презентації».',
+  why:'У сортувальнику видно всі слайди одразу. Текст на слайдах тут не редагують, а лише керують слайдами цілком.',
+  test:function(e){return e.type==='view'&&e.v==='sorter'}},
+ {s:'Зміна порядку',part:2,
+  t:'Змініть порядок слайдів: перетягніть мініатюру на нове місце. На телефоні скористайтеся кнопками «Раніше» й «Пізніше».',
+  hint:'Натисніть мініатюру, утримуйте кнопку миші та перенесіть її на іншу мініатюру.',
+  why:'Порядок слайдів найзручніше змінювати саме тут: слайд переміщується разом із вмістом.',
+  test:function(e){return e.type==='reorder'}},
+ {s:'Сторінка нотаток',part:2,
+  t:'Відкрийте «Сторінку нотаток» (вкладка «Вигляд») і напишіть нотатку до слайда: що ви скажете, коли він з’явиться на екрані.',
+  hint:'Нотатки вводять у полі під зменшеним слайдом. Кнопки ◀ ▶ вгорі перемикають слайди.',
+  why:'Нотатки бачить доповідач, а слухачі під час показу їх не бачать. Їх можна й надрукувати разом зі слайдами.',
+  test:function(e){return e.type==='notes'}},
+ {s:'Режим читання',part:2,
+  t:'Увімкніть «Режим читання» і перейдіть до іншого слайда кнопками ◀ ▶ під слайдом або клавішами зі стрілками.',
+  hint:'Режим читання є на вкладці «Вигляд» і в рядку стану (значок книжки).',
+  why:'Режим читання показує слайд у вікні програми без панелей редагування. Інші вікна лишаються доступними.',
+  test:function(e){return e.type==='readnav'}},
+ {s:'Показ слайдів',part:2,
+  t:'На вкладці «Показ слайдів» натисніть «З початку». Перегляньте щонайменше два слайди (клацання, пробіл або стрілка), потім вийдіть клавішею <kbd>Esc</kbd>.',
+  hint:'Кнопка «З початку» є на вкладці «Показ слайдів». Кнопка в рядку стану починає показ із поточного слайда, тому для цього завдання вона не підходить.',
+  why:'Показ займає весь екран і призначений для аудиторії. Esc завершує його в будь-який момент.',
+  test:function(e){return e.type==='showend'&&e.from==='start'&&e.seen>=2}},
+ {s:'Повернення',part:2,
+  t:'Поверніться до режиму «Звичайний», щоб далі редагувати слайди.',
+  hint:'Скористайтеся вкладкою «Вигляд» або першим значком у рядку стану.',
+  why:'Звичайний режим основний робочий: у ньому редагують вміст слайдів.',
+  test:function(e){return e.type==='view'&&e.v==='normal'}}
+];
+
+/* ---------- Стан ---------- */
+var uid,state,mi,pending,hintOpen,dragFrom=null,galMode='new';
+function mk(layout,props,mine){var s={id:uid++,layout:layout,t:'',s:'',b1:'',b2:'',notes:'',mine:!!mine};for(var k in props)s[k]=props[k];return s}
+function initState(){
+  uid=1;
+  state={slides:[
+    mk('title',{t:'Біоінженерія навколо нас',s:'Інформатика, 10 клас'},false),
+    mk('titleContent',{t:'Що вивчає біоінженерія',b1:'Методи інженерії для живих систем\nМедичні сенсори та біоматеріали\nБіоінформатика й аналіз даних'},false),
+    mk('titleOnly',{t:'Приклади з життя'},false)
+  ],cur:0,view:'normal',tab:'home'};
+  mi=0;pending=false;hintOpen=false;
+}
+var app=$('#app'),thumbsEl=$('#thumbs'),stageEl=$('#stage'),sgrid=$('#sgrid');
+
+function slideHTML(s,o){
+  o=o||{};var L=LAYOUTS[s.layout];
+  var h='<div class="slide lay-'+s.layout+(o.edit?' edit':'')+(o.clean?' clean':'')+'"><i class="band"></i>';
+  L.ph.forEach(function(f){
+    var v=s[f]||'';
+    h+='<div class="ph ph-'+f+(v.trim()?'':' empty')+'" data-f="'+f+'" data-prompt="'+PROMPTS[f]+'"'+(o.edit?' contenteditable="'+CE+'" role="textbox" aria-label="'+PROMPTS[f]+'" spellcheck="false"':'')+'>'+esc(v)+'</div>';
+  });
+  return h+'</div>';
+}
+function say(t){$('#live').textContent=t}
+function cur(){return state.slides[state.cur]}
+
+/* ---------- Рендер ---------- */
+function renderTabs(){
+  $$('.tab').forEach(function(b){b.setAttribute('aria-selected',String(b.getAttribute('data-tab')===state.tab))});
+  $$('.ribbon').forEach(function(r){r.hidden=r.getAttribute('data-tab')!==state.tab});
+}
+function renderThumbs(){
+  thumbsEl.innerHTML=state.slides.map(function(s,i){
+    return '<div class="thumb'+(i===state.cur?' sel':'')+'" role="option" aria-selected="'+(i===state.cur)+'" tabindex="0" data-i="'+i+'" aria-label="Слайд '+(i+1)+'"><span class="n">'+(i+1)+'</span><div class="mini">'+slideHTML(s)+'</div>'+(i===state.cur?'<button class="more" aria-label="Дії зі слайдом" aria-haspopup="true">⋯</button>':'')+'</div>';
+  }).join('');
+}
+function updateThumb(){
+  var t=thumbsEl.children[state.cur];
+  if(t){var m=t.querySelector('.mini');if(m)m.innerHTML=slideHTML(cur())}
+}
+function renderMain(){stageEl.innerHTML=slideHTML(cur(),{edit:true})}
+function renderSorter(){
+  sgrid.innerHTML=state.slides.map(function(s,i){
+    return '<div class="sitem'+(i===state.cur?' sel':'')+'" draggable="true" tabindex="0" data-i="'+i+'" aria-label="Слайд '+(i+1)+'">'+slideHTML(s)+'<span class="num">'+(i+1)+'</span></div>';
+  }).join('');
+}
+function renderNotes(){
+  var s=cur();
+  $('#nSlide').innerHTML=slideHTML(s);
+  $('#nText').value=s.notes||'';
+  $('#nLbl').textContent='Слайд '+(state.cur+1)+' з '+state.slides.length;
+}
+function renderReading(){
+  $('#rMain').innerHTML=slideHTML(cur(),{clean:true});
+  $('#rLbl').textContent='Слайд '+(state.cur+1)+' з '+state.slides.length;
+}
+function renderStatus(){
+  $('#stLbl').textContent='Слайд '+(state.cur+1)+' з '+state.slides.length;
+  $$('[data-vb]').forEach(function(b){b.setAttribute('aria-pressed',String(b.getAttribute('data-vb')===state.view))});
+  $$('.rb[data-act^="view:"]').forEach(function(b){b.setAttribute('aria-pressed',String(b.getAttribute('data-act')==='view:'+state.view))});
+}
+function renderViewOnly(){
+  app.setAttribute('data-view',state.view);
+  if(state.view==='normal'){renderThumbs();renderMain()}
+  else if(state.view==='sorter')renderSorter();
+  else if(state.view==='notes')renderNotes();
+  else if(state.view==='reading')renderReading();
+}
+function renderAll(){renderTabs();renderViewOnly();renderStatus();renderMissions()}
+
+function renderMissions(){
+  var total=M.length,doneCount=Math.min(mi+(pending?1:0),total);
+  $('#count').textContent=doneCount+' з '+total;
+  $('#pips').innerHTML=M.map(function(m,i){
+    var c=i<mi||(i===mi&&pending)?'done':(i===mi?'cur':'');
+    return '<i class="'+c+'"></i>';
+  }).join('');
+  $('#mlist').innerHTML=M.map(function(m,i){
+    var isDone=i<mi||(i===mi&&pending),isCur=i===mi&&!pending;
+    return '<li class="'+(isDone?'done':(isCur?'cur':''))+'"><span class="b">'+(isDone?'✓':(i+1))+'</span><span>'+m.s+'</span></li>';
+  }).join('');
+  var card=$('#card');
+  if(mi>=total){
+    card.innerHTML='<div class="card ok"><p class="part">Готово</p><p class="task">Усі '+total+' завдань виконано. Ви вмієте додавати слайди та перемикати режими перегляду.</p><div class="crow"><button class="btn primary" id="toQuiz">Перейти до перевірки</button></div></div>';
+    $('#toQuiz').onclick=function(){var r=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;$('#quiz').scrollIntoView({behavior:r?'auto':'smooth'})};
+    return;
+  }
+  var m=M[mi];
+  var part=m.part===1?'Частина 1 · Додавання слайдів':'Частина 2 · Режими перегляду';
+  if(pending){
+    card.innerHTML='<div class="card ok"><p class="part">✓ Завдання '+(mi+1)+' зараховано</p><p class="why">'+m.why+'</p><div class="crow"><button class="btn primary" id="next">'+(mi+1===total?'Завершити':'Наступне завдання')+'</button></div></div>';
+    $('#next').onclick=function(){mi++;pending=false;hintOpen=false;renderMissions()};
+  }else{
+    card.innerHTML='<div class="card"><p class="part">'+part+'</p><p class="task"><strong>'+(mi+1)+'.</strong> '+m.t+'</p>'+(hintOpen?'<p class="hintbox">'+m.hint+'</p>':'')+'<div class="crow"><button class="btn sm" id="hintBtn">'+(hintOpen?'Сховати підказку':'Підказка')+'</button></div></div>';
+    $('#hintBtn').onclick=function(){hintOpen=!hintOpen;renderMissions()};
+  }
+}
+function ev(e){
+  if(pending||mi>=M.length)return;
+  if(M[mi].test(e)){pending=true;renderMissions()}
+}
+
+/* ---------- Дії над презентацією ---------- */
+function nextLayout(){return cur().layout==='title'?'titleContent':cur().layout}
+function addSlide(layout,via){
+  var s=mk(layout,{},true);
+  state.slides.splice(state.cur+1,0,s);state.cur++;
+  if(state.view==='show')state.view='normal';
+  renderAll();
+  say('Додано слайд '+(state.cur+1)+' з макетом «'+LAYOUTS[layout].name+'».');
+  ev({type:'add',layout:layout,via:via});
+}
+function dupSlide(){
+  var o=cur(),c=mk(o.layout,{t:o.t,s:o.s,b1:o.b1,b2:o.b2,notes:o.notes},true);
+  state.slides.splice(state.cur+1,0,c);state.cur++;
+  renderAll();
+  say('Слайд '+state.cur+' скопійовано; копія має номер '+(state.cur+1)+'.');
+  ev({type:'dup'});
+}
+function delSlide(){
+  if(state.slides.length<2){say('У презентації має лишитися хоча б один слайд.');return}
+  var n=state.cur+1;
+  state.slides.splice(state.cur,1);
+  if(state.cur>=state.slides.length)state.cur=state.slides.length-1;
+  renderAll();say('Слайд '+n+' видалено.');
+}
+function moveSlide(from,to){
+  if(from===to||from<0||to<0||to>=state.slides.length)return;
+  var s=state.slides.splice(from,1)[0];
+  state.slides.splice(to,0,s);state.cur=to;
+  renderAll();
+  say('Слайд '+(from+1)+' переміщено на позицію '+(to+1)+'.');
+  ev({type:'reorder'});
+}
+function changeLayout(l){
+  cur().layout=l;renderAll();
+  say('Макет слайда '+(state.cur+1)+' змінено на «'+LAYOUTS[l].name+'».');
+}
+function setView(v){
+  state.view=v;renderAll();
+  say('Режим перегляду: «'+VIEWNAMES[v]+'».');
+  ev({type:'view',v:v});
+}
+function select(i){state.cur=i;renderThumbs();renderMain();renderStatus()}
+
+/* ---------- Спливні меню ---------- */
+function closePops(){$$('.pop').forEach(function(p){p.hidden=true})}
+function place(p,x,y){
+  p.hidden=false;
+  var w=p.offsetWidth,h=p.offsetHeight;
+  p.style.left=Math.max(8,Math.min(x,window.innerWidth-w-8))+'px';
+  p.style.top=Math.max(8,Math.min(y,window.innerHeight-h-8))+'px';
+}
+function buildGallery(){
+  $('#galGrid').innerHTML=Object.keys(LAYOUTS).map(function(k){
+    return '<button class="gitem" data-l="'+k+'" role="menuitem">'+slideHTML({layout:k,t:'',s:'',b1:'',b2:''})+'<span>'+LAYOUTS[k].name+'</span></button>';
+  }).join('');
+}
+function openGallery(mode,anchor){
+  galMode=mode;
+  $('#galTitle').textContent=mode==='new'?'Створити слайд':'Макет слайда';
+  var r=anchor.getBoundingClientRect();
+  closePops();
+  place($('#gallery'),r.left,r.bottom+4);
+}
+function openCtx(x,y){closePops();place($('#ctx'),x,y)}
+
+/* ---------- Показ слайдів ---------- */
+var showEl=$('#show'),showOn=false,showIdx=0,showMax=0,showFrom='start';
+function renderShow(){
+  var st=$('#showStage');
+  if(showIdx>=state.slides.length)st.innerHTML='<div class="end">Кінець показу слайдів. Клацніть, щоб вийти.</div>';
+  else st.innerHTML=slideHTML(state.slides[showIdx],{clean:true});
+}
+function startShow(from){
+  closePops();
+  showOn=true;showFrom=from;showIdx=from==='start'?0:state.cur;showMax=1;
+  renderShow();showEl.hidden=false;showEl.focus();
+}
+function nextShow(){
+  if(showIdx>=state.slides.length){exitShow();return}
+  showIdx++;if(showIdx<state.slides.length)showMax++;
+  renderShow();
+}
+function prevShow(){if(showIdx>0){showIdx--;renderShow()}}
+function exitShow(){
+  if(!showOn)return;
+  showOn=false;showEl.hidden=true;
+  var seen=showMax;
+  state.cur=Math.min(showIdx,state.slides.length-1);
+  renderAll();
+  say('Показ слайдів завершено.');
+  ev({type:'showend',from:showFrom,seen:seen});
+}
+
+/* ---------- Події ---------- */
+document.addEventListener('click',function(e){
+  if(!e.target.closest('.pop')&&!e.target.closest('[data-opens]')&&!e.target.closest('.more'))closePops();
+});
+app.addEventListener('click',function(e){
+  var tab=e.target.closest('.tab');
+  if(tab){state.tab=tab.getAttribute('data-tab');renderTabs();return}
+  var more=e.target.closest('.more');
+  if(more){var r=more.getBoundingClientRect();openCtx(r.left,r.bottom+2);e.stopPropagation();return}
+  var b=e.target.closest('[data-act]');
+  if(b){
+    var a=b.getAttribute('data-act');
+    if(a==='quick'){addSlide(nextLayout(),'quick')}
+    else if(a==='gal')openGallery('new',b);
+    else if(a==='layoutgal')openGallery('layout',b);
+    else if(a.indexOf('view:')===0)setView(a.slice(5));
+    else if(a==='show:start')startShow('start');
+    else if(a==='show:cur')startShow('cur');
+    return;
+  }
+  var th=e.target.closest('.thumb');
+  if(th){select(+th.getAttribute('data-i'));return}
+  var si=e.target.closest('.sitem');
+  if(si){state.cur=+si.getAttribute('data-i');renderSorter();renderStatus();return}
+});
+$('#gallery').addEventListener('click',function(e){
+  var g=e.target.closest('.gitem');if(!g)return;
+  var l=g.getAttribute('data-l');closePops();
+  if(galMode==='new')addSlide(l,'gallery');else changeLayout(l);
+});
+$('#ctx').addEventListener('click',function(e){
+  var b=e.target.closest('button');if(!b)return;
+  var c=b.getAttribute('data-c');closePops();
+  if(c==='new')addSlide(nextLayout(),'context');
+  else if(c==='dup')dupSlide();
+  else if(c==='del')delSlide();
+});
+function ctxHandler(sel,attr){
+  return function(e){
+    e.preventDefault();
+    var t=e.target.closest(sel);
+    if(t){state.cur=+t.getAttribute('data-i');if(state.view==='normal'){renderThumbs();renderMain()}else renderSorter();renderStatus()}
+    openCtx(e.clientX,e.clientY);
+  };
+}
+thumbsEl.addEventListener('contextmenu',ctxHandler('.thumb'));
+sgrid.addEventListener('contextmenu',ctxHandler('.sitem'));
+
+thumbsEl.addEventListener('keydown',function(e){
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+    e.preventDefault();
+    var n=state.cur+(e.key==='ArrowDown'?1:-1);
+    if(n>=0&&n<state.slides.length){select(n);var t=thumbsEl.querySelector('.thumb.sel');if(t)t.focus()}
+  }else if(e.key==='Delete'){e.preventDefault();delSlide()}
+  else if((e.key==='Enter'||e.key===' ')&&e.target.classList.contains('thumb')){e.preventDefault();select(+e.target.getAttribute('data-i'))}
+});
+sgrid.addEventListener('keydown',function(e){
+  if(e.key==='Delete'){e.preventDefault();delSlide()}
+  else if((e.key==='Enter'||e.key===' ')&&e.target.classList.contains('sitem')){e.preventDefault();state.cur=+e.target.getAttribute('data-i');renderSorter();renderStatus()}
+});
+
+/* Редагування тексту на слайді */
+stageEl.addEventListener('input',function(e){
+  var el=e.target.closest('.ph');if(!el)return;
+  var f=el.getAttribute('data-f');
+  var v=el.innerText.replace(/\n$/,'');
+  if(!v.trim())v='';
+  var s=cur();s[f]=v;
+  el.classList.toggle('empty',!v.trim());
+  updateThumb();
+  if(f==='t'&&s.mine&&v.trim())ev({type:'type'});
+});
+
+/* Сортувальник: перетягування і кнопки */
+sgrid.addEventListener('dragstart',function(e){
+  var it=e.target.closest('.sitem');if(!it)return;
+  dragFrom=+it.getAttribute('data-i');
+  e.dataTransfer.effectAllowed='move';
+  try{e.dataTransfer.setData('text/plain',String(dragFrom))}catch(x){}
+  it.classList.add('drag');
+});
+sgrid.addEventListener('dragover',function(e){
+  var it=e.target.closest('.sitem');
+  if(it&&dragFrom!==null){
+    e.preventDefault();
+    $$('.sitem.over',sgrid).forEach(function(x){x.classList.remove('over')});
+    it.classList.add('over');
+  }
+});
+sgrid.addEventListener('drop',function(e){
+  e.preventDefault();
+  var it=e.target.closest('.sitem');
+  var from=dragFrom;dragFrom=null;
+  if(it&&from!==null)moveSlide(from,+it.getAttribute('data-i'));else renderSorter();
+});
+sgrid.addEventListener('dragend',function(){dragFrom=null;renderSorter()});
+$('#sEarlier').onclick=function(){if(state.cur>0)moveSlide(state.cur,state.cur-1);else say('Це вже перший слайд.')};
+$('#sLater').onclick=function(){if(state.cur<state.slides.length-1)moveSlide(state.cur,state.cur+1);else say('Це вже останній слайд.')};
+$('#sDelete').onclick=delSlide;
+
+/* Нотатки */
+$('#nText').addEventListener('input',function(){
+  var s=cur();s.notes=this.value;
+  if(state.view==='notes'&&this.value.trim()){say('Нотатку до слайда '+(state.cur+1)+' збережено.');ev({type:'notes'})}
+});
+function notesStep(d){var n=state.cur+d;if(n<0||n>=state.slides.length)return;state.cur=n;renderNotes();renderStatus()}
+$('#nPrev').onclick=function(){notesStep(-1)};
+$('#nNext').onclick=function(){notesStep(1)};
+
+/* Режим читання */
+function readStep(d){
+  var n=state.cur+d;
+  if(n<0||n>=state.slides.length){say(d>0?'Це останній слайд.':'Це перший слайд.');return}
+  state.cur=n;renderReading();renderStatus();
+  say('Слайд '+(n+1)+' з '+state.slides.length+'.');
+  ev({type:'readnav'});
+}
+$('#rPrev').onclick=function(){readStep(-1)};
+$('#rNext').onclick=function(){readStep(1)};
+$('#rMain').onclick=function(){readStep(1)};
+
+/* Показ: клавіші та клацання */
+showEl.addEventListener('click',function(e){
+  if(e.target.id==='showClose'){exitShow();return}
+  nextShow();
+});
+
+/* Ctrl+M на сенсорних пристроях */
+$('#tkey').onclick=function(){addSlide(nextLayout(),'key')};
+
+document.addEventListener('keydown',function(e){
+  if(showOn){
+    var k=e.key;
+    if(k==='Escape'){e.preventDefault();exitShow()}
+    else if(k==='ArrowRight'||k==='ArrowDown'||k==='PageDown'||k===' '||k==='Enter'){e.preventDefault();nextShow()}
+    else if(k==='ArrowLeft'||k==='ArrowUp'||k==='PageUp'||k==='Backspace'){e.preventDefault();prevShow()}
+    return;
+  }
+  if((e.ctrlKey||e.metaKey)&&e.code==='KeyM'&&!e.shiftKey&&!e.altKey){
+    e.preventDefault();addSlide(nextLayout(),'key');return;
+  }
+  if(e.key==='Escape'){closePops();return}
+  if(state.view==='reading'&&!/INPUT|TEXTAREA/.test(document.activeElement.tagName)){
+    if(e.key==='ArrowRight'||e.key==='ArrowDown'||e.key==='PageDown'){e.preventDefault();readStep(1)}
+    else if(e.key==='ArrowLeft'||e.key==='ArrowUp'||e.key==='PageUp'){e.preventDefault();readStep(-1)}
+  }
+});
+
+$('#reset').onclick=function(){
+  if(showOn){showOn=false;showEl.hidden=true}
+  closePops();initState();renderAll();say('Вправу скинуто. Починайте з першого завдання.');
+};
+
+/* ---------- Перевірка ---------- */
+var Q=[
+ {q:'Потрібно швидко побачити всі слайди й поміняти кілька з них місцями.',a:'sorter',e:'У сортувальнику слайдів видно всю презентацію, а слайди переміщують перетягуванням.'},
+ {q:'Ви готуєте текст виступу й записуєте, що казатимете до кожного слайда.',a:'notes',e:'Нотатки бачить доповідач; для них є окреме поле на сторінці нотаток.'},
+ {q:'Потрібно виправити заголовок і додати рядок тексту на слайді.',a:'normal',e:'Вміст слайдів редагують у звичайному режимі.'},
+ {q:'Ви показуєте презентацію класу на проєкторі, слайд має займати весь екран.',a:'show',e:'Лише показ слайдів розгортає слайд на весь екран для аудиторії.'},
+ {q:'Ви самі переглядаєте готову презентацію у вікні програми, не закриваючи інших вікон.',a:'reading',e:'Режим читання показує слайди у вікні без панелей редагування.'}
+];
+var qAnswered,qScore;
+function renderQuiz(){
+  qAnswered=0;qScore=0;
+  $('#qs').innerHTML=Q.map(function(q,i){
+    return '<div class="q" data-q="'+i+'"><p><strong>'+(i+1)+'.</strong> '+q.q+'</p><div class="opts">'+MODES.map(function(m){return '<button class="opt" data-m="'+m[0]+'">'+m[1]+'</button>'}).join('')+'</div><p class="qf" aria-live="polite"></p></div>';
+  }).join('');
+  $('#qres').innerHTML='';
+}
+$('#qs').addEventListener('click',function(e){
+  var o=e.target.closest('.opt');if(!o||o.disabled)return;
+  var box=o.closest('.q'),q=Q[+box.getAttribute('data-q')];
+  var pick=o.getAttribute('data-m'),good=pick===q.a;
+  $$('.opt',box).forEach(function(b){
+    b.disabled=true;
+    if(b.getAttribute('data-m')===q.a)b.classList.add('good');
+  });
+  if(!good)o.classList.add('bad');
+  var name=MODES.filter(function(m){return m[0]===q.a})[0][1];
+  var f=$('.qf',box);
+  f.className='qf '+(good?'good':'bad');
+  f.textContent=(good?'✓ Вірно. ':'✗ Ні, правильна відповідь: «'+name+'». ')+q.e;
+  qAnswered++;if(good)qScore++;
+  if(qAnswered===Q.length){
+    $('#qres').innerHTML='<div class="qres"><span>Результат: '+qScore+' з '+Q.length+'</span><button class="btn" id="qAgain">Пройти ще раз</button></div>';
+    $('#qAgain').onclick=renderQuiz;
+  }
+});
+
+/* ---------- Старт ---------- */
+initState();buildGallery();renderQuiz();renderAll();
+})();
+</script>
+
+</body></html>
